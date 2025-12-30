@@ -15,60 +15,140 @@ This demo application eliminates the complexity of manual model selection by lev
 
 ## 🏗️ Architecture
 
+### Component Architecture
+```mermaid
+graph TB
+    subgraph Frontend["🎨 Frontend (React + TypeScript)"]
+        UI[Chat Interface]
+        IMG[Image Upload]
+        MODE[Mode Selector]
+        TELEM[Telemetry Display]
+    end
+    
+    subgraph Backend["⚙️ FastAPI Backend Pipeline"]
+        PHI[1️⃣ PHI Redaction<br/>Phone, Email, SSN, Names]
+        GUARD[2️⃣ Safety Guardrails<br/>Emergency Detection<br/>Prohibited Content]
+        INTENT[3️⃣ Intent Detection<br/>Admin/Clinical/Vision]
+        RAG[4️⃣ RAG Enhancement<br/>Document Retrieval<br/>Prompt Augmentation]
+        ROUTER[5️⃣ Model Router Call<br/>Mode: Balanced/Cost/Quality<br/>Auto Model Selection]
+        OBS[6️⃣ Observability<br/>Telemetry & Logging]
+    end
+    
+    subgraph AI["🤖 AI Services"]
+        MR[Foundry Model Router<br/>version: 2025-11-18]
+        NANO[gpt-5-nano-2025-08-07]
+        MINI[gpt-5-mini-2025-08-07]
+    end
+    
+    subgraph Data["📚 Data Services"]
+        SEARCH[Azure AI Search<br/>medical-kb index<br/>12 documents]
+    end
+    
+    Frontend -->|HTTP POST| PHI
+    PHI -->|Redacted Message| GUARD
+    GUARD -->|Safety Check| INTENT
+    INTENT -->|Clinical Query| RAG
+    INTENT -->|Admin/Vision Query| ROUTER
+    RAG <-->|Search & Retrieve| SEARCH
+    RAG -->|Augmented Prompt| ROUTER
+    ROUTER -->|API Call| MR
+    MR -.->|Auto-Select| NANO
+    MR -.->|Auto-Select| MINI
+    ROUTER -->|Response| OBS
+    OBS -->|Telemetry + Response| Frontend
+    
+    style Frontend fill:#e1f5ff
+    style Backend fill:#fff4e1
+    style AI fill:#f0e1ff
+    style Data fill:#e1ffe1
+    style MR fill:#ff9800,stroke:#e65100,stroke-width:3px
 ```
-┌──────────────────────────┐
-│   Frontend (React)       │
-│   - Chat Interface       │
-│   - Image Upload         │
-│   - Mode Selector        │
-│   - Telemetry Display    │
-└──────────┬───────────────┘
-           │ HTTP POST
-           ▼
-┌─────────────────────────────────────────────┐
-│         FastAPI Backend Pipeline            │
-│                                             │
-│  ┌─────────────────────────────────────┐  │
-│  │ 1. PHI Redaction                    │  │
-│  │    (Phone, Email, SSN, Names)       │  │
-│  └─────────────────────────────────────┘  │
-│  ┌─────────────────────────────────────┐  │
-│  │ 2. Safety Guardrails                │  │
-│  │    (Emergencies, Prohibited Content)│  │
-│  └─────────────────────────────────────┘  │
-│  ┌─────────────────────────────────────┐  │
-│  │ 3. Intent Detection                 │  │
-│  │    (Admin / Clinical / Vision)      │  │
-│  └─────────────────────────────────────┘  │
-│  ┌─────────────────────────────────────┐  │
-│  │ 4. RAG Enhancement (Clinical only)  │  │
-│  │    - Retrieve from Azure AI Search  │◄─┼─┐
-│  │    - Build augmented prompt         │  │ │
-│  │    - Add context & citations        │  │ │
-│  └─────────────────────────────────────┘  │ │
-│  ┌─────────────────────────────────────┐  │ │
-│  │ 5. Model Router Call                │  │ │
-│  │    - Mode: Balanced/Cost/Quality    │  │ │
-│  │    - Automatic model selection      │◄─┼─┤
-│  │    - Vision support (auto-detect)   │  │ │
-│  └─────────────────────────────────────┘  │ │
-│  ┌─────────────────────────────────────┐  │ │
-│  │ 6. Observability Logging            │  │ │
-│  │    (Model, Tokens, Latency)         │  │ │
-│  └─────────────────────────────────────┘  │ │
-└──────────────┬──────────────────────────────┘ │
-               │                                 │
-               ▼                                 │
-    ┌──────────────────────┐    ┌──────────────┴────────┐
-    │  Foundry Model Router│    │  Azure AI Search      │
-    │  (2025-11-18)        │    │  - medical-kb index   │
-    │                      │    │  - 12 documents       │
-    │  Underlying Models:  │    │  - Admin + Clinical   │
-    │  • gpt-5-nano        │    └───────────────────────┘
-    │  • gpt-5-mini        │
-    │  (Auto-selected)     │
-    └──────────────────────┘
+
+### Request Flow Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant FE as Frontend<br/>(React)
+    participant API as FastAPI<br/>Backend
+    participant PHI as PHI Redactor
+    participant Guard as Guardrails
+    participant Intent as Intent<br/>Detector
+    participant RAG as RAG Pipeline
+    participant Search as Azure AI<br/>Search
+    participant Router as Model<br/>Router
+    participant AI as Underlying<br/>Models
+    participant Obs as Observability
+    
+    User->>FE: Enter query + image + mode
+    FE->>API: POST /chat
+    
+    rect rgb(255, 240, 225)
+    Note over API,PHI: Step 1: PHI Protection
+    API->>PHI: Scan for PHI
+    PHI->>PHI: Detect & redact<br/>phone, email, SSN
+    PHI-->>API: Redacted message
+    end
+    
+    rect rgb(255, 225, 225)
+    Note over API,Guard: Step 2: Safety Check
+    API->>Guard: Check safety
+    Guard->>Guard: Emergency detection<br/>Prohibited content
+    alt Emergency Detected
+        Guard-->>API: ⚠️ Emergency warning
+        API-->>FE: 911 guidance
+        FE-->>User: Emergency response
+    else Safe
+        Guard-->>API: ✅ Safe to proceed
+    end
+    end
+    
+    rect rgb(225, 240, 255)
+    Note over API,Intent: Step 3: Intent Classification
+    API->>Intent: Classify query
+    Intent->>Intent: Analyze keywords<br/>Check image presence
+    Intent-->>API: Intent: Clinical
+    end
+    
+    rect rgb(225, 255, 225)
+    Note over API,Search: Step 4: RAG Enhancement
+    API->>RAG: Clinical query
+    RAG->>Search: Search medical-kb
+    Search-->>RAG: Top 3 documents
+    RAG->>RAG: Build augmented prompt<br/>Add citations
+    RAG-->>API: Enhanced prompt
+    end
+    
+    rect rgb(240, 225, 255)
+    Note over API,AI: Step 5: Model Router
+    API->>Router: Send prompt + mode
+    Router->>Router: Analyze complexity<br/>Apply mode settings
+    Router->>AI: Route to optimal model
+    AI->>AI: Generate response
+    AI-->>Router: Response + tokens
+    Router-->>API: Response + telemetry
+    end
+    
+    rect rgb(255, 255, 225)
+    Note over API,Obs: Step 6: Observability
+    API->>Obs: Log decision
+    Obs->>Obs: Record: model, tokens,<br/>latency, citations
+    Obs-->>API: Telemetry data
+    end
+    
+    API-->>FE: Response + telemetry
+    FE->>FE: Display response<br/>Show citations<br/>Show telemetry
+    FE-->>User: Complete answer
 ```
+
+### Architecture Highlights
+
+🔹 **6-Step Processing Pipeline**: Every request flows through PHI redaction → Safety → Intent → RAG → Router → Observability  
+🔹 **Model Router Exclusive**: Zero explicit model calls—Router automatically selects optimal underlying model  
+🔹 **RAG-Enhanced**: Clinical queries enriched with medical knowledge base context  
+🔹 **Full Observability**: Real-time telemetry showing model selection, tokens, and latency  
+🔹 **Healthcare Safety**: PHI protection, emergency detection, medical disclaimers
 
 ## 🔄 Request Flow & Workflow
 
