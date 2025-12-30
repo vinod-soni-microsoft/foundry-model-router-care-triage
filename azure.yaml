@@ -1,0 +1,92 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: foundry-model-router-care-triage
+metadata:
+  template: foundry-model-router-care-triage@0.0.1-beta
+
+hooks:
+  postprovision:
+    windows:
+      shell: pwsh
+      run: |
+        Write-Host "Retrieving Azure resource information..."
+        $outputs = azd env get-values --output json | ConvertFrom-Json
+        
+        # Update backend .env file
+        $envFile = "backend\.env"
+        if (Test-Path $envFile) {
+          Write-Host "Updating $envFile with Azure resource information..."
+          
+          # Read existing content
+          $content = Get-Content $envFile -Raw
+          
+          # Update values
+          $content = $content -replace 'FOUNDRY_ENDPOINT=.*', "FOUNDRY_ENDPOINT=$($outputs.FOUNDRY_ENDPOINT)"
+          $content = $content -replace 'FOUNDRY_DEPLOYMENT_NAME=.*', "FOUNDRY_DEPLOYMENT_NAME=$($outputs.FOUNDRY_DEPLOYMENT_NAME)"
+          $content = $content -replace 'AZURE_OPENAI_ENDPOINT=.*', "AZURE_OPENAI_ENDPOINT=$($outputs.AZURE_OPENAI_ENDPOINT)"
+          $content = $content -replace 'SEARCH_ENDPOINT=.*', "SEARCH_ENDPOINT=$($outputs.AZURE_SEARCH_ENDPOINT)"
+          
+          # Write back
+          Set-Content -Path $envFile -Value $content -NoNewline
+          Write-Host "Successfully updated $envFile"
+        } else {
+          Write-Host "Warning: $envFile not found"
+        }
+        
+        Write-Host ""
+        Write-Host "Azure resources deployed successfully!" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "Resource Groups:"
+        Write-Host "  AI Resources: $($outputs.AI_RESOURCE_GROUP_NAME)"
+        Write-Host "  Data Resources: $($outputs.DATA_RESOURCE_GROUP_NAME)"
+        Write-Host "  Security Resources: $($outputs.SECURITY_RESOURCE_GROUP_NAME)"
+        Write-Host ""
+        Write-Host "AI Foundry:"
+        Write-Host "  Hub: $($outputs.AI_HUB_NAME)"
+        Write-Host "  Project: $($outputs.AI_PROJECT_NAME)"
+        Write-Host "  Agent: $($outputs.AI_AGENT_NAME)"
+        Write-Host ""
+        Write-Host "Model Router:"
+        Write-Host "  Endpoint: $($outputs.FOUNDRY_ENDPOINT)"
+        Write-Host "  Deployment: $($outputs.FOUNDRY_DEPLOYMENT_NAME)"
+        Write-Host ""
+        Write-Host "Next steps:"
+        Write-Host "  1. Review and update API keys in backend\.env if needed"
+        Write-Host "  2. Run 'cd backend && python app.py' to start the backend"
+        Write-Host "  3. Run 'cd frontend && npm run dev' to start the frontend"
+        Write-Host "  4. Open http://localhost:5173 in your browser"
+      continueOnError: false
+    
+    posix:
+      shell: sh
+      run: |
+        echo "Retrieving Azure resource information..."
+        azd env get-values > .env.temp
+        
+        # Update backend .env file
+        if [ -f "backend/.env" ]; then
+          echo "Updating backend/.env with Azure resource information..."
+          
+          # Source the temp env file
+          . .env.temp
+          
+          # Update the backend .env file
+          sed -i "s|FOUNDRY_ENDPOINT=.*|FOUNDRY_ENDPOINT=${FOUNDRY_ENDPOINT}|g" backend/.env
+          sed -i "s|FOUNDRY_DEPLOYMENT_NAME=.*|FOUNDRY_DEPLOYMENT_NAME=${FOUNDRY_DEPLOYMENT_NAME}|g" backend/.env
+          sed -i "s|AZURE_OPENAI_ENDPOINT=.*|AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}|g" backend/.env
+          sed -i "s|SEARCH_ENDPOINT=.*|SEARCH_ENDPOINT=${AZURE_SEARCH_ENDPOINT}|g" backend/.env
+          
+          echo "Successfully updated backend/.env"
+        fi
+        
+        rm -f .env.temp
+        
+        echo ""
+        echo "Azure resources deployed successfully!"
+        echo ""
+        echo "Next steps:"
+        echo "  1. Review and update API keys in backend/.env if needed"
+        echo "  2. Run 'cd backend && python app.py' to start the backend"
+        echo "  3. Run 'cd frontend && npm run dev' to start the frontend"
+        echo "  4. Open http://localhost:5173 in your browser"
+      continueOnError: false

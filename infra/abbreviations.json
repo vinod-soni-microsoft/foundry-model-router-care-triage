@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/abbreviations.json",
+  "aiSearch": "srch",
+  "aiHub": "aih",
+  "aiProject": "aip",
+  "cognitiveServices": "cog",
+  "keyVault": "kv",
+  "storageAccount": "st",
+  "resourceGroup": "rg",
+  "logAnalyticsWorkspace": "log",
+  "applicationInsights": "appi"
+}

@@ -132,8 +132,7 @@ function App() {
       <header className="app-header">
         <h1>🏥 Care Triage Assistant</h1>
         <p className="disclaimer">
-          ⚠️ <strong>Demo Only:</strong> This is a non-diagnostic demonstration tool.
-          Not for actual medical advice or diagnosis.
+          ⚠️ <strong>Demo Only:</strong> This is a non-diagnostic demonstration tool. Not for actual medical advice or diagnosis.
         </p>
       </header>
 
@@ -142,7 +141,7 @@ function App() {
           Routing Mode:
           <select value={mode} onChange={(e) => setMode(e.target.value as any)}>
             <option value="balanced">⚖️ Balanced</option>
-            <option value="cost">💰 Cost Optimized</option>
+            <option value="cost">�� Cost Optimized</option>
             <option value="quality">⭐ Quality Optimized</option>
           </select>
         </label>
@@ -157,112 +156,123 @@ function App() {
       </div>
 
       <div className="chat-container">
-        <div className="messages">
-          {messages.length === 0 && (
-            <div className="welcome">
-              <h2>Welcome to Care Triage</h2>
-              <p>Try asking about:</p>
-              <ul>
-                <li>📋 Administrative tasks (appointments, billing)</li>
-                <li>🩺 Clinical information (symptoms, conditions)</li>
-                <li>🖼️ Medical images (upload for analysis)</li>
-              </ul>
-            </div>
-          )}
-          {messages.map((msg, idx) => (
-            <div key={idx} className={`message ${msg.role}`}>
-              <div className="message-content">
-                <strong>{msg.role === 'user' ? 'You' : 'Assistant'}:</strong>
-                <div className="text">{msg.content}</div>
-                {msg.warning && (
-                  <div className="warning">{msg.warning}</div>
-                )}
-                {msg.citations && Object.keys(msg.citations).length > 0 && (
-                  <div className="citations">
-                    <strong>📚 Sources:</strong>
-                    {Object.entries(msg.citations).map(([num, citation]) => (
-                      <div key={num} className="citation">
-                        [{num}] {citation.title} ({citation.category})
+        <div className="chat-column">
+          <div className="messages">
+            {messages.length === 0 && (
+              <div className="welcome">
+                <img 
+                  src="/src/image/Designer (7).png" 
+                  alt="Healthcare Professional" 
+                  className="welcome-image"
+                />
+              </div>
+            )}
+            {messages.map((msg, idx) => (
+              <div key={idx} className={`message ${msg.role}`}>
+                <div className="message-content">
+                  <strong>{msg.role === 'user' ? 'You' : 'Assistant'}:</strong>
+                  <div className="text">{msg.content}</div>
+                  {msg.warning && (
+                    <div className="warning">{msg.warning}</div>
+                  )}
+                  {msg.citations && Object.keys(msg.citations).length > 0 && (
+                    <div className="citations">
+                      <strong>📚 Sources:</strong>
+                      {Object.entries(msg.citations).map(([num, citation]) => (
+                        <div key={num} className="citation">
+                          [{num}] {citation.title} ({citation.category})
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {showTelemetry && msg.telemetry && (
+                  <div className="telemetry">
+                    <details>
+                      <summary>📊 Telemetry</summary>
+                      <div className="telemetry-grid">
+                        <div>
+                          <strong>Intent:</strong> {msg.telemetry.intent}
+                        </div>
+                        <div>
+                          <strong>Model:</strong> {msg.telemetry.model_chosen}
+                        </div>
+                        <div>
+                          <strong>Tokens:</strong> {msg.telemetry.tokens.total_tokens}
+                        </div>
+                        <div>
+                          <strong>Latency:</strong> {msg.telemetry.latency_ms.toFixed(0)}ms
+                        </div>
+                        <div className="rationale">
+                          <strong>Rationale:</strong> {msg.telemetry.rationale}
+                        </div>
                       </div>
-                    ))}
+                    </details>
                   </div>
                 )}
               </div>
-              {showTelemetry && msg.telemetry && (
-                <div className="telemetry">
-                  <details>
-                    <summary>📊 Telemetry</summary>
-                    <div className="telemetry-grid">
-                      <div>
-                        <strong>Intent:</strong> {msg.telemetry.intent}
-                      </div>
-                      <div>
-                        <strong>Model:</strong> {msg.telemetry.model_chosen}
-                      </div>
-                      <div>
-                        <strong>Tokens:</strong> {msg.telemetry.tokens.total_tokens}
-                      </div>
-                      <div>
-                        <strong>Latency:</strong> {msg.telemetry.latency_ms.toFixed(0)}ms
-                      </div>
-                      <div className="rationale">
-                        <strong>Rationale:</strong> {msg.telemetry.rationale}
-                      </div>
-                    </div>
-                  </details>
+            ))}
+            {isLoading && (
+              <div className="message assistant loading">
+                <div className="message-content">
+                  <strong>Assistant:</strong>
+                  <div className="text">Thinking...</div>
                 </div>
-              )}
-            </div>
-          ))}
-          {isLoading && (
-            <div className="message assistant loading">
-              <div className="message-content">
-                <strong>Assistant:</strong>
-                <div className="text">Thinking...</div>
               </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
+            )}
+            <div ref={messagesEndRef} />
+          </div>
         </div>
 
-        <div className="input-container">
-          {image && (
-            <div className="image-preview">
-              <img src={image} alt="Preview" />
-              <button onClick={removeImage} className="remove-image">
-                ✕
+        <div className="sidebar">
+          <div className="suggestions-card">
+            <h3>💡 Try asking about</h3>
+            <ul>
+              <li>📋 Administrative tasks (appointments, billing)</li>
+              <li>🩺 Clinical information (symptoms, conditions)</li>
+              <li>🖼️ Medical images (upload for analysis)</li>
+            </ul>
+          </div>
+
+          <div className="input-container">
+            <h3>💬 Your Message</h3>
+            {image && (
+              <div className="image-preview">
+                <img src={image} alt="Preview" />
+                <button onClick={removeImage} className="remove-image">
+                  ✕
+                </button>
+              </div>
+            )}
+            <div className="input-row">
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                onChange={handleImageUpload}
+                style={{ display: 'none' }}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="upload-btn"
+                title="Upload image"
+              >
+                🖼️ Upload Image
+              </button>
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Ask about appointments, symptoms, or upload an image..."
+              />
+              <button
+                onClick={sendMessage}
+                disabled={isLoading || (!input.trim() && !image)}
+                className="send-btn"
+              >
+                {isLoading ? 'Sending...' : 'Send Message'}
               </button>
             </div>
-          )}
-          <div className="input-row">
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept="image/*"
-              onChange={handleImageUpload}
-              style={{ display: 'none' }}
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="upload-btn"
-              title="Upload image"
-            >
-              🖼️
-            </button>
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Ask about appointments, symptoms, or upload an image..."
-              rows={3}
-            />
-            <button
-              onClick={sendMessage}
-              disabled={isLoading || (!input.trim() && !image)}
-              className="send-btn"
-            >
-              Send
-            </button>
           </div>
         </div>
       </div>
